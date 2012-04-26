@@ -211,7 +211,7 @@ public class MultiWaveView extends View {
         }
 
         a.recycle();
-        setVibrateEnabled(false);
+        setVibrateEnabled(mVibrationDuration > 0);
     }
 
     private void dump() {
