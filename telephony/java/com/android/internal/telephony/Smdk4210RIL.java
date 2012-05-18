@@ -33,6 +33,7 @@ import android.content.res.Resources;
 import android.net.ConnectivityManager;
 import android.net.LocalSocket;
 import android.net.LocalSocketAddress;
+import android.net.NetworkInfo;
 import android.os.AsyncResult;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -89,6 +90,16 @@ public class Smdk4210RIL extends RIL implements CommandsInterface {
          */
     }
 
+    private boolean NeedReconnect(int networkType)
+    {
+        ConnectivityManager cm =
+            (ConnectivityManager)mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo ni_active = cm.getActiveNetworkInfo();
+
+        return ni_active != null && ni_active.getTypeName().equalsIgnoreCase( "mobile" ) &&
+                ni_active.isConnected() && cm.getMobileDataEnabled();
+    }
+
     @Override
     public void setPreferredNetworkType (int networkType, Message response) {
         /* Samsung modem implementation does bad things when a datacall is running
@@ -97,12 +108,8 @@ public class Smdk4210RIL extends RIL implements CommandsInterface {
         HandlerThread handlerThread;
         Looper looper;
 
-        ConnectivityManager cm =
-            (ConnectivityManager)mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-
-        if(cm.getMobileDataEnabled())
-        { 
-        
+        if(NeedReconnect(networkType))
+        {
             if (mSmdk4210Handler == null) {
                 handlerThread = new HandlerThread("mSmdk4210Thread");
                 mSmdk4210Thread = handlerThread;
@@ -112,7 +119,7 @@ public class Smdk4210RIL extends RIL implements CommandsInterface {
                 looper = mSmdk4210Thread.getLooper();
                 mSmdk4210Handler = new ConnectivityHandler(mContext, looper);               
             }
-            mSmdk4210Handler.setPreferedNetworkType(networkType, response);                                
+            mSmdk4210Handler.setPreferedNetworkType(networkType, response);    
         } else {
             if (mSmdk4210Handler != null) {
                 mSmdk4210Thread = null;
@@ -156,11 +163,6 @@ public class Smdk4210RIL extends RIL implements CommandsInterface {
             super (looper);
             mContext = context;
         }
-        
-        public ConnectivityHandler(Context context)
-        {            
-            mContext = context;
-        }
 
         private void startListening() {
             IntentFilter filter = new IntentFilter();
@@ -193,7 +195,6 @@ public class Smdk4210RIL extends RIL implements CommandsInterface {
                     (ConnectivityManager)mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
 
                 Log.d(LOG_TAG, "preferred NetworkType set upping Mobile Dataconnection");
-
                 cm.setMobileDataEnabled(true);
                 //everything done now call back that we have set the networktype
                 AsyncResult.forMessage(mNetworktypeResponse, null, null);
